@@ -15,7 +15,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -71,9 +70,8 @@ public class LoginFilter extends CustomJsonEmailPasswordAuthenticationFilter {
             return new UsernamePasswordAuthenticationToken(authenticatedMember.getEmail(), password);
         } catch (Exception e) {
             log.error("LoginFilter - Error during authentication: {}", e.getMessage());
-            response.sendError(HttpStatus.UNAUTHORIZED.value(), "Authentication failed");
+            throw new AuthenticationServiceException("Authentication failed", new AuthenticationServiceException("Authentication Service failed"));
         }
-        return null;
     }
 
 
@@ -90,25 +88,6 @@ public class LoginFilter extends CustomJsonEmailPasswordAuthenticationFilter {
 
         refreshService.saveOrUpdateRefreshEntity(member, newRefresh);
         addResponseData(response, newAccess, newRefresh);
-    }
-
-    @Override
-    protected void unsuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response,
-                                              AuthenticationException failed) throws IOException, ServletException {
-        // 로그에 자세한 실패 원인 기록
-        log.info("로그인에 실패했습니다: {}", failed.getMessage());
-
-        // 클라이언트에게는 일반적인 실패 메시지만 제공
-        response.setContentType("application/json");
-        response.setCharacterEncoding("UTF-8");
-
-        Map<String, Object> responseData = new HashMap<>();
-        responseData.put("timestamp", System.currentTimeMillis());
-        response.setStatus(HttpStatus.UNAUTHORIZED.value());
-        responseData.put("error", "Unauthorized");
-        responseData.put("message", "로그인에 실패했습니다.");
-
-        response.getWriter().write(objectMapper.writeValueAsString(responseData));
     }
 
     /**

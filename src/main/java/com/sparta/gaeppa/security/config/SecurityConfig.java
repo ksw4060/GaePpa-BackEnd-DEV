@@ -30,6 +30,7 @@ public class SecurityConfig {
     private final JwtUtil jwtUtil;
     private final RefreshService refreshService;
     private final AuthenticationConfiguration authenticationConfiguration;
+    private final CustomAuthenticationFailureHandler authenticationFailureHandler;
 
     @Bean
     public JWTFilterV2 jwtFilter() {
@@ -46,6 +47,10 @@ public class SecurityConfig {
         LoginFilter loginFilter = new LoginFilter(authenticationConfiguration.getAuthenticationManager(), objectMapper,
                 memberService, jwtUtil, refreshService);
         loginFilter.setRequiresAuthenticationRequestMatcher(new AntPathRequestMatcher("/v1/members/login", "POST"));
+
+        // 커스텀 실패 핸들러 설정
+        loginFilter.setAuthenticationFailureHandler(authenticationFailureHandler);
+
         return loginFilter;
     }
 
@@ -60,7 +65,6 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
                 // 인가 설정
-//                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
                 .authorizeHttpRequests(auth -> auth
                                 .requestMatchers("/api/v1/members/login", "/api/v1/members/join", "/api/v1/members/master/join",
                                         "/error").permitAll()
@@ -70,7 +74,6 @@ public class SecurityConfig {
                                 .requestMatchers("/api/v1/orders/**", "/api/v1/payments/**", "/api/v1/reviews/**")
                                 .authenticated()
                                 .requestMatchers("/api/v1/product-categories/**").authenticated()
-//                        .anyRequest().denyAll()
                                 .requestMatchers(
                                         "/v3/api-docs/**",
                                         "/swagger-ui/**",
@@ -81,8 +84,8 @@ public class SecurityConfig {
                 )// 나머지 요청은 모두 차단
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(authenticationEntryPoint));
 
-        // 필터 순서: LoginFilter -> JWTFilter
-        http.addFilterBefore(loginFilter(), UsernamePasswordAuthenticationFilter.class);
+        // 필터 순서 조정: LoginFilter 를 UsernamePasswordAuthenticationFilter 이후에 위치시키도록 필터 순서를 조정
+        http.addFilterAfter(loginFilter(), UsernamePasswordAuthenticationFilter.class);
         http.addFilterAfter(jwtFilter(), LoginFilter.class);
 
         return http.build();

@@ -23,6 +23,13 @@ public class CustomAuthenticationEntryPointConfig implements AuthenticationEntry
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response,
                          AuthenticationException authException) throws IOException, ServletException {
+        log.info("CustomAuthenticationEntryPointConfig commence 호출됨");
+
+        if (authException != null) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            log.debug("Invalid credentials provided.!!! in CustomAuthenticationEntryPointConfig! 30th line");
+        }
+
         log.info("인증 실패 엔트리 포인트 호출됨. 예외: {}", authException.getMessage());
         log.info("실패 예외 클래스: {}", authException.getClass().getName());
 
@@ -39,4 +46,5 @@ public class CustomAuthenticationEntryPointConfig implements AuthenticationEntry
 
         response.getWriter().write(objectMapper.writeValueAsString(responseData));
     }
+
 }
